@@ -15,8 +15,8 @@ app = Flask(__name__)
 nlp = spacy.load('en_core_web_sm')
 j=0
 #read pd
-df_tr=pd.read_csv('Training.csv')
-
+df_tr=pd.read_csv('NEWTRAIN.csv')
+df_tt=pd.read_csv('NEWTEST.csv')
 symp=[]
 disease=[]
 for i in range(len(df_tr)):
@@ -219,7 +219,8 @@ def getprecautionDict():
 def calc_condition(exp,days):
     sum=0
     for item in exp:
-         sum=sum+severityDictionary[item]
+        if item in severityDictionary:
+            sum=sum+severityDictionary[item]
     if((sum*days)/(len(exp))>13):
         print("You should take the consultation from doctor. ")
         return 1
@@ -485,7 +486,8 @@ def get_bot_response():
             if len(sugg)>0:
                 msg="Do you feel "+sugg[0]+"?"
                 return msg
-        del session["suggested"]
+        if "suggested" in session:
+            del session["suggested"]
         session['step']="sim2=0"
     if session['step']=="sim2=0":
         temp=session["SSY"]
@@ -511,7 +513,8 @@ def get_bot_response():
                 msg="Do you feel "+sugg[0]+"?"
                 session["suggested_2"]=sugg
                 return msg
-        del session["suggested_2"]
+        if "suggested_2" in session:
+            del session["suggested_2"]
         session['step']="TEST" #test if semantic and syntaxic not found
     if session['step']=="TEST":
         temp=session["FSY"]
@@ -574,9 +577,14 @@ def get_bot_response():
         if "symv" not in session :
             session["symv"]=symVONdisease(df_tr, session["dis"])
         if len(session["symv"])>0:
-            symts=session["symv"]
-            msg="do you feel "+symts[0]+"?"
-            return msg
+            if symts[0] not in session["all"]:
+                symts=session["symv"]
+                msg="do you feel "+clean_symp(symts[0])+"?"
+                return msg
+            else :
+                del symts[0]
+                session["symv"]=symts
+                return get_bot_response()
         else:
             diseases=session["diseases"]
             del diseases[0]
@@ -589,6 +597,7 @@ def get_bot_response():
         else:
             session["dis"]=diseases[0]
             session['step']="DIS"
+            session["symv"]=symVONdisease(df_tr, session["dis"])
             return get_bot_response() #turn around sympt of dis    
         #predict possible diseases 
     if session['step']=="PREDICT":
@@ -604,7 +613,12 @@ def get_bot_response():
             return "can you specify more what you feel or type q to stop the conversation"
     if session['step']=="Description":
         session['step']="Severity"
-        return description_list[session["disease"]]+" \n <br> how many day do you feel those symptoms ?"
+        if session["disease"] in description_list.keys():
+            return description_list[session["disease"]]+" \n <br> how many day do you feel those symptoms ?"
+        else:
+            if " " in session["disease"]:
+                session["disease"]=session["disease"].replace(" ","_")
+            return "please visit <a href='" + "https://en.wikipedia.org/wiki/" +session["disease"]+ "'>  here  </a>"
     if session['step']=="Severity":
         session['step']='FINAL'
         if calc_condition(session["all"],int(s))==1:
