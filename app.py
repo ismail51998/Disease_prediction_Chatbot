@@ -368,6 +368,17 @@ def chat_sp():
             if ans!="yes":
                 a=False
                 print("§ Thanks for using ower application § ")"""
+import json
+def write_json(new_data, filename='DATA.json'):
+    with open(filename,'r+') as file:
+          # First we load existing data into a dict.
+        file_data = json.load(file)
+        # Join new_data with file_data inside emp_details
+        file_data["users"].append(new_data)
+        # Sets file's current position at offset.
+        file.seek(0)
+        # convert back to json.
+        json.dump(file_data, file, indent = 4)              
 
 @app.route("/")
 def home():
@@ -379,15 +390,27 @@ def get_bot_response():
     if "step" in session:
         if session["step"]=="Q_C":
             name=session["name"]
+            age=session["age"]
+            gender=session["gender"]
             session.clear()
             if s=="q":
                 "Thank you for using ower web site Mr/Ms "+name
             else:
                 session["step"]="FS"
-                session["name"]=name    
+                session["name"]=name  
+                session["age"]=age
+                session["gender"]=gender  
     if 'name' not in session and 'step' not in session:
         session['name']=s
-        session['step']="Depart"
+        session['step']="age"
+        return "please give us your age "
+    if session["step"]=="age":
+        session["age"]=int(s)
+        session["step"]="gender"
+        return "please give us your gender"
+    if session["step"]=="gender":
+        session["gender"]=s
+        session["step"]="Depart"
     if session['step']=="Depart":
         session['step']="FS" #first symptom
         return "HeLLO Mr/Ms "+session["name"]+" enter the main symptom you are experiencing "
@@ -612,6 +635,8 @@ def get_bot_response():
             session['step']="Q_C" #test if user want to continue the conversation or not
             return "can you specify more what you feel or type q to stop the conversation"
     if session['step']=="Description":
+        y = {"Name":session["name"],"Age": session["age"],"Gender": session["gender"],"Disease":session["disease"],"Sympts":session["all"]}
+        write_json(y)
         session['step']="Severity"
         if session["disease"] in description_list.keys():
             return description_list[session["disease"]]+" \n <br> how many day do you feel those symptoms ?"
@@ -641,7 +666,7 @@ def get_bot_response():
             session['step']="FS"
             return "HeLLO again Mr/Ms "+session["name"]+" enter the main symptom you are experiencing "
         else:
-            return "THANKS Mr/Ms "+name+" for using ower app for more information pleas contact .."
+            return "THANKS Mr/Ms "+name+" for using ower app for more information pleas contact <b> +21266666666</b>"
 
 
 if __name__ == "__main__":
